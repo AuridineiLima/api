@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Api de Usuários</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 40px;
+    }
+
+    h1 {
+      color: #004080;
+      text-align: center;
+    }
+
+    .form-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input, button {
+      margin: 5px;
+      padding: 10px 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #004080;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0066cc;
+    }
+
+    table {
+      width: 80%;
+      max-width: 800px;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background-color: #004080;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .actions button {
+      background-color: #666;
+      margin: 0 3px;
+      font-size: 12px;
+    }
+
+    .actions .delete {
+      background-color: #cc0000;
+    }
+
+    .actions .delete:hover {
+      background-color: #ff3333;
+    }
+
+    .actions .edit {
+      background-color: #ffaa00;
+    }
+
+    .actions .edit:hover {
+      background-color: #ffcc33;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cadastro de Usuários</h1>
+
+  <div class="form-container">
+    <input type="text" id="nome" placeholder="Nome">
+    <input type="email" id="email" placeholder="Email">
+    <button onclick="criarUsuario()">Adicionar</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Ordem</th>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="tabela-usuarios"></tbody>
+  </table>
+
+  <script>
+    const API = "http://localhost:3000/users";
+
+    // Criar usuário
+    async function criarUsuario() {
+      const nome = document.getElementById("nome").value;
+      const email = document.getElementById("email").value;
+
+      if (!nome || !email) {
+        alert("Preencha todos os campos!");
+        return;
+      }
+
+      await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, email })
+      });
+
+      document.getElementById("nome").value = "";
+      document.getElementById("email").value = "";
+      listarUsuarios();
+    }
+
+    // Listar usuários
+    async function listarUsuarios() {
+      const res = await fetch(API);
+      const users = await res.json();
+
+      const tabela = document.getElementById("tabela-usuarios");
+      tabela.innerHTML = "";
+
+      users.forEach((user, index) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td><span id="nome-${user.id}">${user.nome}</span></td>
+          <td><span id="email-${user.id}">${user.email}</span></td>
+          <td class="actions">
+            <button class="edit" onclick="editarUsuario(${user.id})">Editar</button>
+            <button class="delete" onclick="deletarUsuario(${user.id})">Excluir</button>
+          </td>
+        `;
+        tabela.appendChild(tr);
+      });
+    }
+
+    // Deletar usuário
+    async function deletarUsuario(id) {
+      await fetch(API + "/" + id, { method: "DELETE" });
+      listarUsuarios();
+    }
+
+    // Editar usuário
+    function editarUsuario(id) {
+      const nomeAtual = document.getElementById(`nome-${id}`).innerText;
+      const emailAtual = document.getElementById(`email-${id}`).innerText;
+
+      document.getElementById(`nome-${id}`).innerHTML = `<input type="text" id="edit-nome-${id}" value="${nomeAtual}">`;
+      document.getElementById(`email-${id}`).innerHTML = `<input type="email" id="edit-email-${id}" value="${emailAtual}">`;
+
+      const actionsCell = document.querySelector(`#nome-${id}`).parentElement.parentElement.querySelector(".actions");
+      actionsCell.innerHTML = `
+        <button onclick="salvarEdicao(${id})">Salvar</button>
+        <button onclick="listarUsuarios()">Cancelar</button>
+      `;
+    }
+
+    // Salvar edição
+    async function salvarEdicao(id) {
+      const nome = document.getElementById(`edit-nome-${id}`).value;
+      const email = document.getElementById(`edit-email-${id}`).value;
+
+      await fetch(API + "/" + id, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, email })
+      });
+
+      listarUsuarios();
+    }
+
+    // Carregar lista ao abrir
+    listarUsuarios();
+  </script>
+</body>
+</html>
